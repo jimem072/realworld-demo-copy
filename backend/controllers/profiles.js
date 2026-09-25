@@ -1,5 +1,5 @@
 const { UnauthorizedError, NotFoundError } = require("../helper/customErrors");
-const { appendFollowers } = require("../helper/helpers");
+const { appendFollowers, createNotification } = require("../helper/helpers");
 const { User } = require("../models");
 
 //? All Profiles - paginated user directory
@@ -61,6 +61,11 @@ const followToggler = async (req, res, next) => {
 
     if (req.method === "POST") {
       await profile.addFollower(loggedUser);
+      await createNotification({
+        type: "follow",
+        recipientId: profile.id,
+        actorId: loggedUser.id,
+      });
     } else if (req.method === "DELETE") {
       await profile.removeFollower(loggedUser);
     }

@@ -3,6 +3,7 @@ const {
   appendFollowers,
   appendFavorites,
   appendTagList,
+  createNotification,
 } = require("../helper/helpers");
 const { Article, Tag, User } = require("../models");
 
@@ -31,7 +32,15 @@ const favoriteToggler = async (req, res, next) => {
     });
     if (!article) throw new NotFoundError("Article");
 
-    if (req.method === "POST") await article.addUser(loggedUser);
+    if (req.method === "POST") {
+      await article.addUser(loggedUser);
+      await createNotification({
+        type: "favorite",
+        recipientId: article.userId,
+        actorId: loggedUser.id,
+        articleId: article.id,
+      });
+    }
     if (req.method === "DELETE") await article.removeUser(loggedUser);
 
     appendTagList(article.tagList, article);

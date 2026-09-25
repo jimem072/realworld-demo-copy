@@ -2,7 +2,8 @@ const { NotFoundError, UnauthorizedError } = require("../helper/customErrors");
 const { makeInstance, makeRes, mockRequire } = require("../test-utils/fakeModels");
 
 const Article = { findOne: vi.fn() };
-mockRequire(require.resolve("../models"), { Article, Tag: {}, User: {} });
+const Notification = { create: vi.fn() };
+mockRequire(require.resolve("../models"), { Article, Notification, Tag: {}, User: {} });
 
 const { favoriteToggler } = require("./favorites");
 
@@ -13,9 +14,9 @@ function makeFollowableAuthor(overrides = {}) {
   );
 }
 
-function makeArticle({ author, hasUser = false, favoritesCount = 0 }) {
+function makeArticle({ author, hasUser = false, favoritesCount = 0, userId }) {
   return makeInstance(
-    { id: 1, slug: "a-slug", tagList: [] },
+    { id: 1, slug: "a-slug", tagList: [], userId: userId ?? author?.id },
     {
       author,
       getAuthor: vi.fn().mockResolvedValue(author),
@@ -31,6 +32,7 @@ const loggedUser = makeInstance({ id: 2, username: "reader" });
 
 beforeEach(() => {
   Article.findOne.mockReset();
+  Notification.create.mockReset();
 });
 
 describe("favoriteToggler", () => {
@@ -87,4 +89,42 @@ describe("favoriteToggler", () => {
   // AC-050 / AC-054's anonymous-viewer case (favorited forced false, count
   // still the true total) is exercised in articles.test.js's singleArticle
   // tests, since that's the endpoint anonymous visitors actually use.
+
+  // Notifications (Issue #15): favoriting someone else's article notifies
+  // that article's author.
+  test("POST favorite on another author's article -> notifies that author", async () => {
+    const article = makeArticle({ author: makeFollowableAuthor({ id: 9 }), hasUser: true });
+    Article.findOne.mockResolvedValue(article);
+
+    await favoriteToggler({ loggedUser, params: { slug: "a-slug" }, method: "POST" }, makeRes(), vi.fn());
+
+    expect(Notification.create).toHaveBeenCalledWith({
+      type: "favorite",
+      recipientId: 9,
+      actorId: 2,
+      articleId: 1,
+    });
+  });
+
+  // Notifications (Issue #15): unfavoriting never notifies (only the
+  // positive favorite action does).
+  test("DELETE (unfavorite) -> no notification created", async () => {
+    const article = makeArticle({ author: makeFollowableAuthor({ id: 9 }), hasUser: false });
+    Article.findOne.mockResolvedValue(article);
+
+    await favoriteToggler({ loggedUser, params: { slug: "a-slug" }, method: "DELETE" }, makeRes(), vi.fn());
+
+    expect(Notification.create).not.toHaveBeenCalled();
+  });
+
+  // Notifications (Issue #15): favoriting your own article never notifies
+  // yourself.
+  test("POST favorite on your own article -> no notification created", async () => {
+    const article = makeArticle({ author: makeFollowableAuthor({ id: 2 }), hasUser: true, userId: 2 });
+    Article.findOne.mockResolvedValue(article);
+
+    await favoriteToggler({ loggedUser, params: { slug: "a-slug" }, method: "POST" }, makeRes(), vi.fn());
+
+    expect(Notification.create).not.toHaveBeenCalled();
+  });
 });

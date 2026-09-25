@@ -437,6 +437,37 @@ changed.
 - **AC-086** — Given an entry in the user directory, when it is displayed,
   then it links to that user's full profile page.
 
+### US-031 — In-app notifications for follow, comment, and favorite
+*(REQ-051, REQ-052)*
+
+- **AC-087** — Given user A follows user B, comments on B's article, or
+  favorites B's article, when the action succeeds, then a notification
+  is created for B identifying the type and A, and the related article
+  when applicable. *(Verified by `backend/controllers/profiles.test.js`,
+  `backend/controllers/comments.test.js`, and
+  `backend/controllers/favorites.test.js`.)*
+- **AC-088** — Given a user performs one of these actions on their own
+  account or content (e.g., favoriting their own article), when the
+  action succeeds, then no notification is created. *(Verified by
+  `backend/helper/helpers.test.js`, `backend/controllers/comments.test.js`,
+  and `backend/controllers/favorites.test.js`.)*
+- **AC-089** — Given the inverse of one of these actions (unfollow,
+  unfavorite), when it succeeds, then no notification is created — only
+  the positive action notifies. *(Verified by
+  `backend/controllers/profiles.test.js` and
+  `backend/controllers/favorites.test.js`.)*
+- **AC-090** — Given a user's own notifications, when listed, then they
+  are returned newest-first, paginated, and each includes its type and
+  enough context to identify who acted and, if applicable, which
+  article. *(Verified by `backend/controllers/notifications.test.js`.)*
+- **AC-091** — Given another user's notification, when a user attempts
+  to mark it as read, then the request is rejected. *(Verified by
+  `backend/controllers/notifications.test.js`.)*
+- **AC-092** — Given one or more unread notifications, when marked read
+  individually or in bulk, then their read state updates accordingly and
+  the unread count reflects the change. *(Verified by
+  `backend/controllers/notifications.test.js`.)*
+
 ---
 
 ## Traceability Matrix
@@ -493,3 +524,5 @@ changed.
 | REQ-048 | US-028 | AC-078, AC-079 |
 | REQ-049 | US-029 | AC-080–AC-082 |
 | REQ-050 | US-030 | AC-083–AC-086 |
+| REQ-051 | US-031 | AC-087–AC-089 |
+| REQ-052 | US-031 | AC-090–AC-092 |

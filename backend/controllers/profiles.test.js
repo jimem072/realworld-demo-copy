@@ -2,7 +2,8 @@ const { NotFoundError, UnauthorizedError } = require("../helper/customErrors");
 const { makeInstance, makeRes, mockRequire } = require("../test-utils/fakeModels");
 
 const User = { findOne: vi.fn(), findAndCountAll: vi.fn() };
-mockRequire(require.resolve("../models"), { User });
+const Notification = { create: vi.fn() };
+mockRequire(require.resolve("../models"), { User, Notification });
 
 const { allProfiles, getProfile, followToggler } = require("./profiles");
 
@@ -23,6 +24,7 @@ const loggedUser = makeInstance({ id: 2, username: "reader" });
 beforeEach(() => {
   User.findOne.mockReset();
   User.findAndCountAll.mockReset();
+  Notification.create.mockReset();
 });
 
 describe("allProfiles", () => {
@@ -145,5 +147,32 @@ describe("followToggler", () => {
     expect(profile.removeFollower).toHaveBeenCalledWith(loggedUser);
     expect(profile.dataValues.following).toBe(false);
     expect(profile.dataValues.followersCount).toBe(2);
+  });
+
+  // Notifications (Issue #15): following someone notifies them.
+  test("POST follow -> notifies the followed account", async () => {
+    const profile = makeProfile({ hasFollower: true, followersCount: 1 });
+    User.findOne.mockResolvedValue(profile);
+
+    await followToggler({ loggedUser, params: { username: "author" }, method: "POST" }, makeRes(), vi.fn());
+
+    expect(Notification.create).toHaveBeenCalledWith({
+      type: "follow",
+      recipientId: 1,
+      actorId: 2,
+      articleId: undefined,
+      commentId: undefined,
+    });
+  });
+
+  // Notifications (Issue #15): unfollowing never notifies (only the
+  // positive follow action does).
+  test("DELETE (unfollow) -> no notification created", async () => {
+    const profile = makeProfile({ hasFollower: false, followersCount: 0 });
+    User.findOne.mockResolvedValue(profile);
+
+    await followToggler({ loggedUser, params: { username: "author" }, method: "DELETE" }, makeRes(), vi.fn());
+
+    expect(Notification.create).not.toHaveBeenCalled();
   });
 });

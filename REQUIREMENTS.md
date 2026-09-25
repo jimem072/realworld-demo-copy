@@ -436,3 +436,38 @@ index (`offset`, default 0), mirroring the pagination convention used for
 article listing (REQ-013).
 
 *(Directly verified by `backend/controllers/profiles.test.js`.)*
+
+---
+
+### REQ-051 — Notifications generated for follow, comment, and favorite actions
+A successful follow, comment creation, or article favorite (REQ-022,
+REQ-025, REQ-027) generates a notification for the recipient — the
+followed user for a follow, or the commented-/favorited-on article's
+author for a comment or favorite — together with the existing behavior
+of those three actions; it does not gate or otherwise change whether
+the underlying action itself succeeds or fails. No notification is
+generated for the inverse action (unfollow, unfavorite) — only the
+positive action notifies. No notification is generated when the acting
+user and the recipient are the same account.
+
+*Boundary:* If notification creation itself fails for any reason, the
+triggering follow/comment/favorite action still completes successfully;
+the failure is contained and never surfaces to the caller.
+
+*(Directly verified by `backend/helper/helpers.test.js` and the
+notification-related tests in `backend/controllers/profiles.test.js`,
+`backend/controllers/comments.test.js`, and
+`backend/controllers/favorites.test.js`.)*
+
+### REQ-052 — Notification list, read state, and privacy
+A user can retrieve their own notifications as a paginated, newest-first
+list (page size `limit`, default 10; page index `offset`, default 0),
+where each notification identifies its type and enough context to
+identify who performed the action and, if applicable, which article. A
+user can mark one of their own notifications as read, or mark all of
+their unread notifications as read in a single action; an unread count
+reflects the result. Notifications are private: a user may only view or
+mark as read their own notifications, and any attempt to act on another
+user's notification is rejected.
+
+*(Directly verified by `backend/controllers/notifications.test.js`.)*

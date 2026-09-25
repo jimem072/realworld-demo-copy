@@ -1,3 +1,5 @@
+const { Notification } = require("../models");
+
 const slugify = (string) => {
   return string.trim().toLowerCase().replace(/\W|_/g, "-");
 };
@@ -39,4 +41,23 @@ const appendFollowers = async (loggedUser, toAppend) => {
   }
 };
 
-module.exports = { slugify, appendTagList, appendFavorites, appendFollowers };
+// A notification is a side effect of a successful follow/comment/favorite
+// action, never a gate on it — failures here are swallowed so they can
+// never turn an otherwise-successful request into an error response.
+const createNotification = async ({ actorId, articleId, commentId, recipientId, type }) => {
+  if (actorId === recipientId) return;
+
+  try {
+    await Notification.create({ actorId, articleId, commentId, recipientId, type });
+  } catch (error) {
+    console.error("Failed to create notification:", error);
+  }
+};
+
+module.exports = {
+  slugify,
+  appendTagList,
+  appendFavorites,
+  appendFollowers,
+  createNotification,
+};

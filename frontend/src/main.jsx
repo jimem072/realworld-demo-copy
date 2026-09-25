@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { HashRouter, Route, Routes } from "react-router-dom";
 import App from "./App";
 import AuthProvider from "./context/AuthContext";
+import NotificationProvider from "./context/NotificationContext";
 import "./index.css";
 import reportWebVitals from "./reportWebVitals";
 import Article from "./routes/Article/Article";
@@ -13,6 +14,7 @@ import Home from "./routes/Home";
 import HomeArticles from "./routes/HomeArticles";
 import Login from "./routes/Login";
 import NotFound from "./routes/NotFound";
+import Notifications from "./routes/Notifications";
 import Profile from "./routes/Profile/Profile";
 import ProfileArticles from "./routes/Profile/ProfileArticles";
 import ProfileFavArticles from "./routes/Profile/ProfileFavArticles";
@@ -23,33 +25,36 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <HashRouter>
       <AuthProvider>
-        <Routes>
-          <Route element={<App />}>
-            <Route path="/" element={<Home />}>
-              <Route index element={<HomeArticles />} />
+        <NotificationProvider>
+          <Routes>
+            <Route element={<App />}>
+              <Route path="/" element={<Home />}>
+                <Route index element={<HomeArticles />} />
+              </Route>
+
+              <Route path="login" element={<Login />} />
+              <Route path="register" element={<SignUp />} />
+              <Route path="directory" element={<Directory />} />
+              <Route path="notifications" element={<Notifications />} />
+
+              <Route path="settings" element={<Settings />} />
+
+              <Route path="editor" element={<ArticleEditor />}>
+                <Route path=":slug" element={<ArticleEditor />} />
+              </Route>
+
+              <Route path="article/:slug" element={<Article />}>
+                <Route index element={<CommentsSection />} />
+              </Route>
+
+              <Route path="profile/:username" element={<Profile />}>
+                <Route index element={<ProfileArticles />} />
+                <Route path="favorites" element={<ProfileFavArticles />} />
+              </Route>
             </Route>
-
-            <Route path="login" element={<Login />} />
-            <Route path="register" element={<SignUp />} />
-            <Route path="directory" element={<Directory />} />
-
-            <Route path="settings" element={<Settings />} />
-
-            <Route path="editor" element={<ArticleEditor />}>
-              <Route path=":slug" element={<ArticleEditor />} />
-            </Route>
-
-            <Route path="article/:slug" element={<Article />}>
-              <Route index element={<CommentsSection />} />
-            </Route>
-
-            <Route path="profile/:username" element={<Profile />}>
-              <Route index element={<ProfileArticles />} />
-              <Route path="favorites" element={<ProfileFavArticles />} />
-            </Route>
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </NotificationProvider>
       </AuthProvider>
     </HashRouter>
   </React.StrictMode>,

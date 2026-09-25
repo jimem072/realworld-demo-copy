@@ -8,7 +8,8 @@ const { makeInstance, makeRes, mockRequire } = require("../test-utils/fakeModels
 
 const Article = { findOne: vi.fn() };
 const Comment = { create: vi.fn(), findByPk: vi.fn() };
-mockRequire(require.resolve("../models"), { Article, Comment, User: {} });
+const Notification = { create: vi.fn() };
+mockRequire(require.resolve("../models"), { Article, Comment, Notification, User: {} });
 
 const { allComments, createComment, deleteComment } = require("./comments");
 
@@ -30,6 +31,7 @@ beforeEach(() => {
   Article.findOne.mockReset();
   Comment.create.mockReset();
   Comment.findByPk.mockReset();
+  Notification.create.mockReset();
 });
 
 describe("allComments", () => {
@@ -109,6 +111,42 @@ describe("createComment", () => {
 
     expect(Comment.create).toHaveBeenCalledWith(expect.objectContaining({ body: "   " }));
     expect(res.status).toHaveBeenCalledWith(201);
+  });
+
+  // Notifications (Issue #15): commenting on someone else's article
+  // notifies that article's author.
+  test("commenting on another author's article -> notifies that author", async () => {
+    Article.findOne.mockResolvedValue(makeInstance({ id: 5, userId: 9 }));
+    Comment.create.mockResolvedValue(makeInstance({ id: 3, body: "hi" }));
+
+    await createComment(
+      { loggedUser: makeFollowableUser({ id: 2 }), body: { comment: { body: "hi" } }, params: { slug: "a" } },
+      makeRes(),
+      vi.fn(),
+    );
+
+    expect(Notification.create).toHaveBeenCalledWith({
+      type: "comment",
+      recipientId: 9,
+      actorId: 2,
+      articleId: 5,
+      commentId: 3,
+    });
+  });
+
+  // Notifications (Issue #15): commenting on your own article never
+  // notifies yourself.
+  test("commenting on your own article -> no notification created", async () => {
+    Article.findOne.mockResolvedValue(makeInstance({ id: 5, userId: 2 }));
+    Comment.create.mockResolvedValue(makeInstance({ id: 3, body: "hi" }));
+
+    await createComment(
+      { loggedUser: makeFollowableUser({ id: 2 }), body: { comment: { body: "hi" } }, params: { slug: "a" } },
+      makeRes(),
+      vi.fn(),
+    );
+
+    expect(Notification.create).not.toHaveBeenCalled();
   });
 });
 
